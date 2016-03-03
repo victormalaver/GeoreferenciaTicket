@@ -40,305 +40,184 @@ function cargaMapa() {
 }
 
 function cargaPosAlmacenesDespachador() {
-    window.location.assign("components/funcionalidad06KIKE/mapa.html");
+    var dropdownlist = $("#txtIdDespachadorF06").data("kendoDropDownList");
+    $("#nombreDespachador").html(dropdownlist.dataItem().nomDespachador);
+
+    var idDespachador = dropdownlist.dataItem().idDespachador;
+    // console.log(" Almacenes >>> idDespachador: " + idDespachador);
+    var fechaIniDateParts = $("#f06Desde").val().split("T");
+    fechaIniDateParts[0] = fechaIniDateParts[0].replace(/-/g, "/"); // formato date yyyy/mm/dd
+    var strFechaIniDateParts = fechaIniDateParts[0] + " " + fechaIniDateParts[1] + ":00";
+    // console.log(" Almacenes >>> fechaIni: " + strFechaIniDateParts);
+    var fechaFinDateParts = $("#f06Hasta").val().split("T");
+    fechaFinDateParts[0] = fechaFinDateParts[0].replace(/-/g, "/"); // formato date yyyy/mm/dd
+    var strFechaFinDateParts = fechaFinDateParts[0] + " " + fechaFinDateParts[1] + ":00";
+    // console.log(" Almacenes >>> fechaFin: " + strFechaFinDateParts);
+
+    
+    $("#f06mapa").attr("src", "components/funcionalidad06KIKE/mapa.html?WServ="+WServ+"&idDespachador="+idDespachador+"&strFechaIniDateParts="+strFechaIniDateParts+"&strFechaFinDateParts="+strFechaFinDateParts);
     return;
-    // alert(1);
-    var iconAlmacen = L.icon({
-        iconUrl: 'almacen2.png',
-        // iconRetinaUrl: 'my-icon@2x.png',
-        // iconSize: [38, 95],
-        iconAnchor: [15, 38], //X,Y
-        popupAnchor: [0, -35],
-        // // shadowUrl: 'my-icon-shadow.png',
-        // shadowRetinaUrl: 'my-icon-shadow@2x.png',
-        // shadowSize: [68, 95],
-        // shadowAnchor: [22, 94]
-    });
 
-    var iconMarker = L.icon({
-        iconUrl: 'marker2.png',
-        // iconRetinaUrl: 'my-icon@2x.png',
-        // iconSize: [38, 95],
-        iconAnchor: [15, 38], //X,Y
-        popupAnchor: [0, -35],
-        // // shadowUrl: 'my-icon-shadow.png',
-        // shadowRetinaUrl: 'my-icon-shadow@2x.png',
-        // shadowSize: [68, 95],
-        // shadowAnchor: [22, 94]
+    var dsUbicacionListar = new kendo.data.DataSource({
+        transport: {
+            read: {
+                //url: "http://54.213.238.161/wsAusa/Operaciones/UbicacionListar",
+                url: WServ + "Operaciones/UbicacionListar",
+                dataType: "json",
+                type: "post",
+                data: {
+                    usuario: idDespachador,
+                    fechaIni: strFechaIniDateParts,
+                    fechaFin: strFechaFinDateParts,
+                }
+            }
+        }
     });
 
 
+    // *** TAKE CARE: ubicaciones from hard file .json ***
+    // var dsUbicacionListar = new kendo.data.DataSource({
+    //     // transport: {
+    //         // read: {
+    //         //     url: "http://54.213.238.161/geodata/prueba-almacenes-ausa.json",
+    //         //     dataType: "json"
+    //         // }
+    //     // }
+    //     data: [{
+    //             "LatLong": [-12.10270360, -77.00211410],
+    //             "Fecha": "2016-02-12 13:53:09",
+    //             "Operacion": 1,
+    //             "Info": "<b>Fecha: </b>12-02-2016 <br> <b>Hora: </b>13:53:09 <br> <b>Operacion: </b>1"
+    //         },
+    //         {
+    //             "LatLong": [-12.10270360, -77.09211410],
+    //             "Fecha": "2016-02-12 13:53:09",
+    //             "Operacion": 3,
+    //             "Info": "<b>Fecha: </b>12-02-2016 <br> <b>Hora: </b>12:40:18 <br> <b>Operacion: </b>3"
+    //         }
+    //    	]
+    // });
 
-    map = L.map('map', {
-        center: [-12.11391, -77.03933],
-        zoom: 10,
+    dsUbicacionListar.fetch(function () {
+        var data = this.data();
+        console.log("*** Data Length >>> " + data.length);
+        if (data.length > 0) {
+            if (parseInt(data[0].Ejecucion) == 1) {
+                //Notificaciones
+                var notificationElement = $("#notification");
+                notificationElement.kendoNotification();
+                var notificationWidget = notificationElement.data("kendoNotification");
+                notificationWidget.show("Sistema App Movil no funciona correctamente", "error");
+                //End
+            } else {
+                var ultimaUbicacionDateParts = data[0].Fecha.split(" ");
+                var strDateParts = ultimaUbicacionDateParts[0].split("-");
+                var strUltimaUbicacionDateParts = strDateParts[2] + "/" + strDateParts[1] + "/" + strDateParts[0] + " " + ultimaUbicacionDateParts[1];
+                // console.log("Ultima ubicacion DP >>> "+strUltimaUbicacionDateParts);
+                var dtUltimaUbicacionDateParts = new Date(strUltimaUbicacionDateParts);
+                var strGetDate = "";
+                if (dtUltimaUbicacionDateParts.getDate() < 10) {
+                    strGetDate = "0" + dtUltimaUbicacionDateParts.getDate();
+                } else {
+                    strGetDate = dtUltimaUbicacionDateParts.getDate();
+                }
+                $("#ultimaUbicacionYHora").html(
+                    strGetDate + "-" +
+                    (dtUltimaUbicacionDateParts.getMonth() + 1) + "-" +
+                    dtUltimaUbicacionDateParts.getFullYear() + " " +
+                    dtUltimaUbicacionDateParts.getHours() + ":" +
+                    dtUltimaUbicacionDateParts.getMinutes()
+                );
+
+                var arrayPosDespachador = [];
+                // console.log("JSON >>> str: "+JSON.stringify(arrayPosDespachador));
+                var ds_HC_UbicacionListar = new kendo.data.DataSource({
+                    // data: JSON.stringify(arrayPosDespachador)
+                    data: arrayPosDespachador
+                });
+
+                // Success case we find locations for despachador
+                $("#mapDespachadores").kendoMap({
+                    center: [-12.11391, -77.03933],
+                    zoom: 10,
+                    layers: [
+                        {
+                            type: "tile",
+                            urlTemplate: "http://#= subdomain #.tile.openstreetmap.org/#= zoom #/#= x #/#= y #.png",
+                            subdomains: ["a", "b", "c"],
+                        },
+                        {
+                            //Layer for positions Ubicacionen despachador
+                            type: "marker",
+                            dataSource: dsUbicacionListar, //ds_HC_UbicacionListar,
+                            locationField: "LatLong",
+                            titleField: "Info",
+                            shape: "pin",
+                        },
+                        {
+                            //Layer for positions AlmacenesListar
+                            type: "marker",
+                            dataSource: ds_HC_AlmacenesListar,
+                            locationField: "LatLong",
+                            titleField: "InfoAlmacen",
+                            shape: "pin-marker",
+                        },
+
+                    ],
+                });
+                // Insert here the code to add the almacenes positions on the map read from WS AlmacenesListar START
+
+
+                var dsAlmacenesListar = new kendo.data.DataSource({
+                    transport: {
+                        read: {
+                            //url: "http://54.213.238.161/wsAusa/Operaciones/AlmacenesListar",
+                            url: WServ + "Operaciones/AlmacenesListar",
+                            dataType: "json",
+                            type: "post"
+                        }
+                    }
+                });
+
+                var ds_HC_AlmacenesListar;
+
+                dsAlmacenesListar.fetch(function () {
+                    var data = this.data();
+                    if (data.length > 0) {
+                        var arrayPosAlmacenes = [];
+                        for (var i = 0; i < dsAlmacenesListar.total(); i++) {
+                            arrayPosAlmacenes[i] = data[i];
+                        }
+                        // console.log("JSON >>> str: "+JSON.stringify(arrayPosAlmacenes));
+                        ds_HC_AlmacenesListar = new kendo.data.DataSource({
+                            data: arrayPosAlmacenes
+                        });
+                        var map = $("#mapDespachadores").data("kendoMap");
+                        var layerTarget = map.layers[2];
+                        layerTarget.setDataSource(ds_HC_AlmacenesListar);
+                    }
+                });
+
+            }
+        } else {
+            // Failure case NO locations for despachador
+            $("#mapDespachadores").kendoMap({
+                center: [-12.11391, -77.03933],
+                zoom: 10,
+                layers: [
+                    {
+                        type: "tile",
+                        urlTemplate: "http://#= subdomain #.tile.openstreetmap.org/#= zoom #/#= x #/#= y #.png",
+                        subdomains: ["a", "b", "c"],
+                 }],
+            });
+            $("#ultimaUbicacionYHora").html("N/A");
+            $("#funcionalidad06PopUp").data("kendoMobileModalView").open();
+        }
+        console.log("*** END Data Length");
     });
 
-    L.tileLayer('http://{s}.mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.png', {
-        attribution: "Map: Tiles Courtesy of MapQuest (OpenStreetMap, CC-BY-SA)",
-        subdomains: ["otile1", "otile2", "otile3", "otile4"],
-        // maxZoom: 12,
-        // minZoom: 2
-    }).addTo(map);
-
-    var markers = new L.MarkerClusterGroup();
-    // markers.addLayer(new L.Marker([1, 1]));
-
-    markers.addTo(map);
-
-    // expect getLayers().length to be 1, which will add 
-    // another marker, but it does not happen
-    if (markers.getLayers().length !== 1) {
-
-
-        markers.addLayer(new L.Marker([-12.10717380, -77.03446570], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10715030, -77.03443360], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712780, -77.03441050], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03444470], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712390, -77.03440990], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03445420], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10713000, -77.03441760], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712940, -77.03441560], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10716850, -77.03446960], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10758740, -77.03539700], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10627070, -77.03395750], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629410, -77.03525950], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630490, -77.03531250], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629840, -77.03528860], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629300, -77.03530430], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630950, -77.03534350], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-
-
-
-
-        markers.addLayer(new L.Marker([-12.10717380, -77.03446570], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10715030, -77.03443360], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712780, -77.03441050], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03444470], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712390, -77.03440990], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03445420], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10713000, -77.03441760], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712940, -77.03441560], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10716850, -77.03446960], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10758740, -77.03539700], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10627070, -77.03395750], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629410, -77.03525950], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630490, -77.03531250], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629840, -77.03528860], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629300, -77.03530430], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630950, -77.03534350], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-
-
-
-        markers.addLayer(new L.Marker([-12.10717380, -77.03446570], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10715030, -77.03443360], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712780, -77.03441050], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03444470], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712390, -77.03440990], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03445420], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10713000, -77.03441760], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712940, -77.03441560], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10716850, -77.03446960], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10758740, -77.03539700], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10627070, -77.03395750], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629410, -77.03525950], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630490, -77.03531250], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629840, -77.03528860], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629300, -77.03530430], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630950, -77.03534350], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10717380, -77.03446570], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10715030, -77.03443360], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712780, -77.03441050], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03444470], {
-            icon: iconAlmacen
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712390, -77.03440990], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10714490, -77.03445420], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10713000, -77.03441760], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10712940, -77.03441560], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10716850, -77.03446960], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10530840, -77.03899540], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10758740, -77.03539700], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10685380, -77.03467730], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10627070, -77.03395750], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629410, -77.03525950], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630490, -77.03531250], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629840, -77.03528860], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10629300, -77.03530430], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-        markers.addLayer(new L.Marker([-12.10630950, -77.03534350], {
-            icon: iconMarker
-        }).bindPopup('A pretty CSS3 popup.<br> Easily customizable.'));
-    }
+    $("#controlesMapa").toggle();
 }
 
 function resetParametros() {
